@@ -21,6 +21,7 @@
     "framer-motion": "^11.11.8",
     "leaflet": "^1.9.4",
     "localforage": "^1.10.0",
+    "lodash": "^4.17.21",
     "match-sorter": "^6.3.4",
     "mongoose": "^8.7.3",
     "react": "^18.3.1",

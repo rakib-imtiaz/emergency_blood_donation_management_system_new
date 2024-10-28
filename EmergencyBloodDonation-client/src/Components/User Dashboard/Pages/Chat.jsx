@@ -1,10 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaRobot, FaUser, FaMoon, FaSun, FaPaperPlane, FaMicrophone } from 'react-icons/fa';
+import { RiWechatLine } from 'react-icons/ri';
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.5 } }
+  };
+
+  const messageVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
 
   useEffect(() => {
     setMessages([
@@ -273,62 +289,174 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.sender === 'User' ? 'justify-end' : 'justify-start'
-            }`}
-          >
-            <div
-              className={`max-w-xs md:max-w-md px-4 py-2 rounded-lg ${
-                message.sender === 'User'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-800'
-              }`}
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className={`flex flex-col h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+    >
+      {/* Header */}
+      <motion.div 
+        className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}
+        initial={{ y: -50 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
+          <div className="flex items-center gap-3">
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             >
-              <p className="font-semibold">{message.sender}</p>
-              <p>{message.text}</p>
-              <p className="text-xs mt-1 text-gray-300">
-                {message.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
-            </div>
+              <RiWechatLine className={`text-3xl ${isDarkMode ? 'text-red-400' : 'text-red-500'}`} />
+            </motion.div>
+            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              AI Blood Donation Assistant
+            </h1>
           </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
-              <p>AI is thinking...</p>
-            </div>
-          </div>
-        )}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-700 text-yellow-400' : 'bg-gray-100 text-gray-600'}`}
+          >
+            {isDarkMode ? <FaSun className="text-xl" /> : <FaMoon className="text-xl" />}
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Chat Container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-6xl mx-auto w-full">
+        <AnimatePresence>
+          {messages.map((message) => (
+            <motion.div
+              key={message.id}
+              variants={messageVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className={`flex ${message.sender === 'User' ? 'justify-end' : 'justify-start'}`}
+            >
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className={`flex items-start space-x-2 max-w-xl ${
+                  message.sender === 'User' ? 'flex-row-reverse' : 'flex-row'
+                }`}
+              >
+                <div className={`p-2 rounded-full ${
+                  message.sender === 'User' 
+                    ? isDarkMode ? 'bg-red-600' : 'bg-red-500' 
+                    : isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+                }`}>
+                  {message.sender === 'User' ? (
+                    <FaUser className="text-white" />
+                  ) : (
+                    <FaRobot className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+                  )}
+                </div>
+                <div className={`px-4 py-2 rounded-2xl ${
+                  message.sender === 'User'
+                    ? isDarkMode ? 'bg-red-600 text-white' : 'bg-red-500 text-white'
+                    : isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'
+                }`}>
+                  <p className="text-sm">{message.text}</p>
+                  <p className={`text-xs mt-1 ${
+                    message.sender === 'User'
+                      ? 'text-red-200'
+                      : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* AI Typing Indicator */}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="flex items-center space-x-2"
+            >
+              <div className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                <FaRobot className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+              </div>
+              <div className="flex space-x-1">
+                {[1, 2, 3].map((dot) => (
+                  <motion.div
+                    key={dot}
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: dot * 0.1 }}
+                    className={`w-2 h-2 rounded-full ${
+                      isDarkMode ? 'bg-gray-600' : 'bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSendMessage} className="p-4 border-t">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            disabled={isLoading}
-          >
-            Send
-          </button>
-        </div>
-      </form>
-    </div>
+
+      {/* Input Form */}
+      <motion.div 
+        className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+        initial={{ y: 50 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <form onSubmit={handleSendMessage} className="max-w-6xl mx-auto">
+          <div className="flex items-center space-x-4">
+            <motion.div 
+              className={`flex-1 flex items-center space-x-2 px-4 py-2 rounded-full ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+              }`}
+              whileFocus={{ scale: 1.02 }}
+            >
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className={`flex-1 bg-transparent focus:outline-none ${
+                  isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'
+                }`}
+                disabled={isLoading}
+              />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                className={`p-2 rounded-full ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+              >
+                <FaMicrophone />
+              </motion.button>
+            </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              type="submit"
+              disabled={isLoading || !newMessage.trim()}
+              className={`p-4 rounded-full ${
+                isDarkMode 
+                  ? 'bg-red-600 text-white hover:bg-red-700' 
+                  : 'bg-red-500 text-white hover:bg-red-600'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <FaPaperPlane />
+            </motion.button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 };
 
