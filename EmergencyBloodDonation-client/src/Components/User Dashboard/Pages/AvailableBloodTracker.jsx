@@ -20,6 +20,7 @@ const MapController = ({ center }) => {
   return null;
 };
 
+
 const BloodTypeCard = ({ type, count, isSelected }) => {
   return (
     <motion.div
