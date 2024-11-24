@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSearch, FaTimes, FaPhoneAlt, FaUserCircle, FaTint, FaMapMarkerAlt, FaLocationArrow, FaSyncAlt, FaDirections, FaMapMarkedAlt } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaPhoneAlt, FaUserCircle, FaTint, FaMapMarkerAlt, FaLocationArrow, FaSyncAlt, FaDirections, FaMapMarkedAlt, FaHospital } from 'react-icons/fa';
 
 // Add this new component for map control
 const MapController = ({ center }) => {
@@ -515,6 +515,99 @@ const AvailableBloodTracker = () => {
   // Add a user marker state and component
   const [userMarker, setUserMarker] = useState(null);
 
+  // Add new state variables near the top of the component
+  const [hospitals, setHospitals] = useState([]);
+  const [showHospitals, setShowHospitals] = useState(false);
+  const [isLoadingHospitals, setIsLoadingHospitals] = useState(false);
+
+  // Add this new function to fetch hospitals
+  const fetchNearbyHospitals = async (location) => {
+    setIsLoadingHospitals(true);
+    try {
+      // Overpass API query to find hospitals within 5km radius
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+          way["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+          relation["amenity"="hospital"](around:5000,${location.lat},${location.lng});
+        );
+        out body;
+        >;
+        out skel qt;
+      `;
+
+      const response = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: query
+      });
+
+      const data = await response.json();
+      
+      // Process and format hospital data
+      const processedHospitals = data.elements
+        .filter(element => element.type === 'node' && element.tags)
+        .map(hospital => ({
+          id: hospital.id,
+          name: hospital.tags.name || 'Unnamed Hospital',
+          location: {
+            lat: hospital.lat,
+            lng: hospital.lon
+          },
+          address: hospital.tags['addr:street'] || 'Address not available',
+          phone: hospital.tags.phone || 'Phone not available',
+          emergency: hospital.tags.emergency === 'yes'
+        }));
+
+      setHospitals(processedHospitals);
+      setShowHospitals(true);
+    } catch (error) {
+      console.error('Error fetching hospitals:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to fetch nearby hospitals'
+      });
+    } finally {
+      setIsLoadingHospitals(false);
+    }
+  };
+
+  // Add a toggle button in the controls section (after the refresh button)
+  const hospitalToggleButton = (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => {
+        if (!showHospitals && userLocation) {
+          fetchNearbyHospitals(userLocation);
+        } else {
+          setShowHospitals(!showHospitals);
+        }
+      }}
+      disabled={!userLocation || isLoadingHospitals}
+      className={`ml-4 px-4 py-3 flex items-center gap-2 rounded-xl border transition-all duration-200
+        ${showHospitals 
+          ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600' 
+          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-500 hover:text-blue-500'
+        } disabled:opacity-70`}
+    >
+      {isLoadingHospitals ? (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <FaSyncAlt className="text-lg" />
+        </motion.div>
+      ) : (
+        <FaHospital className="text-lg" />
+      )}
+      <span className="hidden md:inline">
+        {isLoadingHospitals ? 'Loading Hospitals...' : 'Show Hospitals'}
+      </span>
+    </motion.button>
+  );
+
   // Update the MapContainer section
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -560,6 +653,7 @@ const AvailableBloodTracker = () => {
               </span>
             </motion.button>
             {refreshButton}
+            {hospitalToggleButton}
           </div>
         </div>
 
@@ -712,6 +806,56 @@ const AvailableBloodTracker = () => {
                       className="mt-2 w-full px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
                     >
                       View Details
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* Hospital Markers */}
+            {showHospitals && hospitals.map((hospital) => (
+              <Marker
+                key={hospital.id}
+                position={[hospital.location.lat, hospital.location.lng]}
+                icon={L.divIcon({
+                  className: 'custom-div-icon',
+                  html: `
+                    <div style="
+                      background-color: #3B82F6;
+                      width: 30px;
+                      height: 30px;
+                      border-radius: 50%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: white;
+                      border: 2px solid white;
+                      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                    ">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16px" height="16px">
+                        <path d="M18 14h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>
+                      </svg>
+                    </div>
+                  `,
+                  iconSize: [30, 30],
+                  iconAnchor: [15, 15],
+                })}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-bold text-lg">{hospital.name}</h3>
+                    <p className="text-sm text-gray-600">{hospital.address}</p>
+                    {hospital.phone !== 'Phone not available' && (
+                      <p className="text-sm text-gray-600">📞 {hospital.phone}</p>
+                    )}
+                    <button
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${hospital.location.lat},${hospital.location.lng}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="mt-2 w-full px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Get Directions
                     </button>
                   </div>
                 </Popup>
