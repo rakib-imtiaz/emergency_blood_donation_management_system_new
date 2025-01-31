@@ -4,8 +4,12 @@ import { useContext } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
 import MarqueeHeading from "./MarqueeHeading/MarqueeHeading";
 import Marquee from "react-fast-marquee";
+import useAdmin from '../../hooks/useAdmin';
+
 const Navbar = () => {
     const { user, logOut } = useContext(AuthContext)
+    const [isAdmin] = useAdmin();
+
     const handleSignOut = () => {
         logOut()
             .then()
@@ -57,6 +61,13 @@ const Navbar = () => {
                 : "text-red-600 hover:border-b-4 border-red-400 text-lg font-medium  rounded"
         } to='/userprofile'>user profile</NavLink>
         </li>
+        {isAdmin && (
+            <li>
+                <Link to="/admin" className="text-red-600 font-semibold">
+                    Admin Panel
+                </Link>
+            </li>
+        )}
     </>
     return (
        <div>

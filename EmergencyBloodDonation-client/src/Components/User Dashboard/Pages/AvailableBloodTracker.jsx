@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSearch, FaTimes, FaPhoneAlt, FaUserCircle, FaTint, FaMapMarkerAlt, FaLocationArrow, FaSyncAlt, FaDirections, FaMapMarkedAlt, FaHospital } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaPhoneAlt, FaUserCircle, FaTint, FaMapMarkerAlt, FaLocationArrow, FaSyncAlt, FaDirections, FaMapMarkedAlt, FaHospital, FaPhone, FaCalendar } from 'react-icons/fa';
 
 // Add this new component for map control
 const MapController = ({ center }) => {
